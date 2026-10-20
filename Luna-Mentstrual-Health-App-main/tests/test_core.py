@@ -81,8 +81,16 @@ def test_history_is_sent_to_the_llm(monkeypatch):
     r=answer_question("Is that too long?",kb,history=hist)
     assert r["answer"]=="answer"
     final=sent["calls"][-1]
-    assert final[1]=={"role":"user","content":"I'm 15 and my period lasts 9 days."}
-    assert final[-1]["role"]=="user" and "Is that too long?" in final[-1]["content"]
+    assert [m["role"] for m in final]==["system","user"]  # same two-message call as without history
+    prompt=final[-1]["content"]
+    assert "- I'm 15 and my period lasts 9 days." in prompt and "Thanks for sharing" not in prompt
+    assert prompt.endswith("\n\nQuestion: Is that too long?")
+
+def test_prompt_without_history_is_unchanged():
+    from rag import build_prompt, PROMPT_TEMPLATE
+    chunks=[{"url":"u","title":"T","text":"x"}]
+    assert build_prompt("Q?",chunks)==PROMPT_TEMPLATE.format(context="[1] T (u): x",question="Q?")
+    assert build_prompt("Q?",chunks,[{"role":"assistant","content":"hi"}])==build_prompt("Q?",chunks)
 
 def test_yes_accepts_general_answer_offer(monkeypatch):
     import rag

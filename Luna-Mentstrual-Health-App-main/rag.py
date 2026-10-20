@@ -11,8 +11,6 @@ log = logging.getLogger(__name__)
 SYSTEM_PROMPT = "You provide evidence-grounded health education."
 PROMPT_TEMPLATE = (
     "You are Luna, a warm, concise menstrual-health education assistant. Not a diagnostic service. "
-    "Earlier messages in this conversation are included so you can follow up naturally: use them to understand "
-    "what words like 'it' or 'that' refer to and to remember what the user has told you, but take facts ONLY from the excerpts. "
     "Answer the exact question in age-appropriate, nonjudgmental language. Use ONLY evidence in the supplied excerpts; "
     "do not invent facts or citations. If evidence is insufficient, say so. Give proportionate urgent-care guidance "
     "when clearly warranted. Cite claims inline as [1], [2], matching the excerpt numbers. Keep the answer under 220 words; use short paragraphs or bullet points when listing symptoms or steps."
@@ -125,10 +123,22 @@ def _numbering(chunks):
     return nums
 
 
-def build_prompt(question, chunks):
+def with_user_context(prompt, history):
+    """Add the user's earlier messages just before the final "Question:" so follow-ups make sense.
+    Only the user's own messages are included, so the prompt's answer format is unchanged."""
+    earlier = [m["content"][:500] for m in history or [] if m["role"] == "user"]
+    if not earlier:
+        return prompt
+    note = ("Earlier messages from the user in this conversation (context only - use them to understand what the "
+            "question refers to and what the user has told you):\n" + "\n".join(f"- {t}" for t in earlier))
+    head, sep, tail = prompt.rpartition("\n\nQuestion: ")
+    return head + "\n\n" + note + sep + tail
+
+
+def build_prompt(question, chunks, history=None):
     nums = _numbering(chunks)
     ctx = "\n".join(f"[{nums[c['url']]}] {c['title']} ({c['url']}): {c['text']}" for c in chunks)
-    return PROMPT_TEMPLATE.format(context=ctx, question=question)
+    return with_user_context(PROMPT_TEMPLATE.format(context=ctx, question=question), history)
 
 
 GENERAL_PROMPT = (
@@ -137,7 +147,6 @@ GENERAL_PROMPT = (
     "knowledge only. Be accurate and cautious: do not give drug doses or diagnoses, say when something is uncertain, "
     "and suggest seeing a clinician when appropriate. If the question is unrelated to health, periods or the body, "
     "politely say you can only help with menstrual and reproductive health. Do not cite sources. "
-    "Use earlier messages in the conversation to understand follow-up questions. "
     "Keep the answer under 180 words.\n\nQuestion: {question}"
 )
 NOT_IN_SOURCES = ("I couldn't find this in my trusted health sources, so I can't give you a source-backed answer. "
@@ -192,22 +201,20 @@ def standalone_question(question, history):
 
 def general_answer(question, history=None):
     """Ungrounded answer from the LLM's general knowledge, clearly labelled (same temperature as RAG answers)."""
-    return GENERAL_LABEL + generate(GENERAL_PROMPT.format(question=question), history=clean_history(history))
+    return GENERAL_LABEL + generate(with_user_context(GENERAL_PROMPT.format(question=question), clean_history(history)))
 
 
-def generate(prompt, retries=5, history=None, temperature=None):
-    """Call the chat-completions API, retrying on rate limits (429) / temporary 5xx errors.
-    `history` (earlier {role, content} turns) is sent before the prompt so the model can follow the conversation."""
+def generate(prompt, retries=5, temperature=None):
+    """Call the chat-completions API, retrying on rate limits (429) / temporary 5xx errors."""
     import time, requests
     base = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
     if temperature is None:
         temperature = float(os.getenv("LLM_TEMPERATURE", "0.2"))
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}, *(history or []), {"role": "user", "content": prompt}]
     for attempt in range(retries + 1):
         r = requests.post(base + "/chat/completions",
                           headers={"Authorization": "Bearer " + os.environ["LLM_API_KEY"], "Content-Type": "application/json"},
                           json={"model": os.getenv("LLM_MODEL", "gpt-4o-mini"), "temperature": temperature,
-                                "messages": messages},
+                                "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}]},
                           timeout=35)
         if r.status_code in (429, 500, 502, 503) and attempt < retries:
             wait = float(r.headers.get("Retry-After") or 0) or min(2 ** attempt, 20)
@@ -258,6 +265,6 @@ def answer_question(question, kb, k=5, history=None):
         answer = ("I'm running without a configured AI provider, so this is a source-based summary rather than a "
                   "generated answer.\n\n" + " ".join(sents) + "\n\nFor a tailored answer, configure LLM_API_KEY in .env.")
     else:
-        answer = generate(build_prompt(question, chunks), history=history)
+        answer = generate(build_prompt(question, chunks, history))
     return {"answer": answer, "sources": _sources(chunks), "contexts": [c["text"] for c in chunks],
             "retrieval_mode": mode, "grounded": True, "offer_general": False, "search_query": search}

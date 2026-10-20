@@ -47,7 +47,7 @@ Luna remembers the current chat, so you can ask follow-ups like "is that normal?
 
 - Both front-ends send the last few turns with each question (`/api/chat` accepts `{"message": ..., "history": [{"role": "user"|"assistant", "content": ...}]}`).
 - For retrieval, a follow-up is first rewritten into a standalone question using the earlier turns (an extra low-cost LLM call at temperature 0). Without `LLM_API_KEY`, the previous question is combined with the new one instead. The response includes this as `search_query`.
-- The earlier turns are sent to the LLM before the grounded prompt, so it can resolve "it"/"that" and remember context; facts still come only from the retrieved excerpts. Old source lists and `[n]` citation numbers are stripped from history so they don't clash with new citations.
+- The user's earlier messages are added to the prompt as a short context note just before the question, so Luna can resolve "it"/"that" and remember what you told it. Luna's own earlier answers are not sent, so the answer format and citations stay exactly as before; facts still come only from the retrieved excerpts.
 - Replying "yes" after Luna offers a general AI answer now gives that answer.
 - `HISTORY_MESSAGES` (default 8) sets how many earlier messages are used. **New chat** clears the conversation. History is kept in the page only (not saved on the server); reloading the page starts fresh.
 
