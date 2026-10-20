@@ -63,6 +63,28 @@ st.markdown("""
 .log:last-child { border-bottom: 0; }
 .muted { color: #9a5a69; font-size: .82rem; }
 .stButton > button { border-radius: 12px; font-weight: 600; }
+/* Pin colours so the page stays readable when the viewer's browser/Streamlit is in dark mode. */
+.stApp { color-scheme: light; color: #4A0E1C; }
+.stApp p, .stApp li, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp strong,
+[data-testid="stChatMessage"] *, [data-testid="stWidgetLabel"] *, [data-testid="stMarkdownContainer"] { color: #4A0E1C !important; }
+.stApp a, [data-testid="stChatMessage"] a { color: #C8102E !important; }
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] * { color: #9a5a69 !important; }
+.stTabs [data-baseweb="tab"] *, .stTabs [data-baseweb="tab"] { color: #8B0A1E !important; }
+.stTabs [aria-selected="true"], .stTabs [aria-selected="true"] * { color: #fff !important; }
+.stButton > button { background: #fff !important; color: #8B0A1E !important; border: 1px solid #f6c9d3 !important; }
+.stButton > button * { color: inherit !important; }
+.stButton > button:hover { border-color: #C8102E !important; color: #C8102E !important; }
+.stButton > button[kind="primary"] { background: #C8102E !important; color: #fff !important; border-color: #C8102E !important; }
+[data-testid="stBottom"], [data-testid="stBottom"] > div, [data-testid="stBottomBlockContainer"] { background: #fff1f3 !important; }
+[data-testid="stChatInput"], [data-testid="stChatInput"] > div { background: #fff !important; border-color: #f6c9d3 !important; }
+[data-testid="stChatInput"] textarea { background: #fff !important; color: #4A0E1C !important; caret-color: #C8102E; }
+[data-testid="stChatInput"] textarea::placeholder { color: #9a5a69 !important; opacity: 1; }
+[data-testid="stChatInput"] button { background: #C8102E !important; color: #fff !important; }
+[data-testid="stChatInput"] button svg { fill: #fff !important; color: #fff !important; }
+[data-baseweb="input"], [data-baseweb="input"] > div, [data-baseweb="input"] input,
+[data-baseweb="base-input"], [data-testid="stNumberInput"] button { background: #fff !important; color: #4A0E1C !important; border-color: #f6c9d3 !important; }
+[data-testid="stSpinner"] * { color: #8B0A1E !important; }
+.stApp .luna-hero, .stApp .luna-hero *, .stApp .next, .stApp .next * { color: #fff !important; }
 </style>
 """, unsafe_allow_html=True)
 
