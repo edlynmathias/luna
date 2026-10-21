@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luna - menstrual health</title>
+<style>
+  :root {
+    --bg: #fdf6f8; --card: #ffffff; --ink: #2d2329; --muted: #7d6b74; --line: #efdfe5;
+    --accent: #b8476f; --accent-soft: #fbe9ef; --user: #b8476f; --userText: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1518; --card: #251d21; --ink: #f3e9ed; --muted: #b19ea7; --line: #3a2d33;
+            --accent: #e27aa0; --accent-soft: #33242b; --user: #c75582; --userText: #fff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 32px; }
+
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .logo { width: 42px; height: 42px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+          display: grid; place-items: center; font-size: 22px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .tabs { display: flex; gap: 4px; background: var(--accent-soft); padding: 4px; border-radius: 12px; margin-bottom: 14px; }
+  .tabs button { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 10px;
+                 border-radius: 9px; font: 600 14px inherit; font-family: inherit; cursor: pointer; }
+  .tabs button.active { background: var(--card); color: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+  .hidden { display: none !important; }
+
+  /* chat */
+  #messages { height: min(60vh, 520px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px; }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 16px; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.luna { background: var(--accent-soft); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.user { background: var(--user); color: var(--userText); align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg.error { background: #fff3e0; color: #7a4a00; border: 1px solid #f3d19c; }
+  @media (prefers-color-scheme: dark) { .msg.error { background: #3a2a14; color: #f3d19c; border-color: #5a4320; } }
+  .sources { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12.5px; white-space: normal; }
+  .sources span { color: var(--muted); font-weight: 600; }
+  .sources a { display: block; color: var(--accent); text-decoration: none; margin-top: 2px; }
+  .sources a:hover { text-decoration: underline; }
+  .typing { display: inline-flex; gap: 4px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .chips button { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px;
+                  padding: 6px 12px; font: 13px inherit; font-family: inherit; cursor: pointer; }
+  .chips button:hover { border-color: var(--accent); color: var(--accent); }
+
+  form.ask { display: flex; gap: 8px; margin-top: 10px; }
+  input, button { font-family: inherit; }
+  input[type=text], input[type=number], input[type=date] {
+    width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); color: var(--ink); font-size: 15px; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .btn { border: 0; background: var(--accent); color: #fff; padding: 11px 18px; border-radius: 10px;
+         font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); padding: 6px 12px; font-size: 13px; }
+  .note { color: var(--muted); font-size: 12px; margin: 10px 0 0; text-align: center; }
+
+  /* tracker */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+  label { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+  .estimate { text-align: center; background: var(--accent-soft); border-radius: 14px; padding: 18px; margin: 14px 0; }
+  .estimate small { color: var(--muted); letter-spacing: .08em; font-size: 11px; font-weight: 700; }
+  .estimate div { font-size: 26px; font-weight: 700; color: var(--accent); margin: 4px 0; }
+  .estimate p { margin: 0; color: var(--muted); font-size: 12.5px; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row small { color: var(--muted); display: block; }
+  h3 { margin: 0; font-size: 15px; }
+  .head { display: flex; justify-content: space-between; align-items: center; margin: 14px 0 4px; }
+  #trackerMsg { font-size: 13px; color: var(--accent); margin-left: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">☾</div>
+    <div>
+      <h1>Luna</h1>
+      <p>Menstrual-health answers from trusted sources</p>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button id="tabChat" class="active">Chat</button>
+    <button id="tabTracker">Period tracker</button>
+  </div>
+
+  <!-- CHAT -->
+  <section id="chat" class="card">
+    <div id="messages">
+      <div class="msg luna">Hi, I'm Luna 🌙 Ask me anything about periods, products or symptoms.</div>
+    </div>
+    <div class="chips" id="chips">
+      <button>What period products can I use?</button>
+      <button>Are bad cramps normal?</button>
+      <button>How do I know if my period is too heavy?</button>
+    </div>
+    <form class="ask" id="chatForm">
+      <input type="text" id="question" maxlength="1200" placeholder="Type your question..." autocomplete="off" required>
+      <button class="btn" id="send">Send</button>
+    </form>
+    <p class="note">Educational information only - not a diagnosis. See a clinician for personal advice.</p>
+  </section>
+
+  <!-- TRACKER -->
+  <section id="tracker" class="card hidden">
+    <div class="grid">
+      <label>Period start <input type="date" id="startDate"></label>
+      <label>Period end <input type="date" id="endDate"></label>
+      <label>Typical cycle length (days) <input type="number" id="cycleLength" min="15" max="60" value="28"></label>
+      <label>&nbsp;<button class="btn" id="saveLog">Save period</button></label>
+    </div>
+    <span id="trackerMsg"></span>
+
+    <div class="estimate">
+      <small>NEXT PERIOD (ESTIMATE)</small>
+      <div id="nextDate">-</div>
+      <p>Based on your latest start date. Cycles vary, so treat this as a guide.</p>
+    </div>
+
+    <div class="head"><h3>Past periods</h3><button class="btn ghost" id="deleteAll">Delete all</button></div>
+    <div id="logs"></div>
+    <p class="note">Saved only in this browser. Never sent to the chat.</p>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ---------- tabs ----------
+function showTab(name) {
+  $("chat").classList.toggle("hidden", name !== "chat");
+  $("tracker").classList.toggle("hidden", name !== "tracker");
+  $("tabChat").classList.toggle("active", name === "chat");
+  $("tabTracker").classList.toggle("active", name === "tracker");
+}
+$("tabChat").onclick = () => showTab("chat");
+$("tabTracker").onclick = () => showTab("tracker");
+
+// ---------- chat ----------
+// Works when served by Flask, or when this file is opened directly (server must still be running).
+const API = location.port === "5000" ? "" : "http://127.0.0.1:5000";
+let chatHistory = []; // earlier questions and answers, sent so Luna can understand follow-ups
+
+function addMessage(text, who, sources) {
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  div.textContent = text;
+  if (sources && sources.length) {
+    const s = document.createElement("div");
+    s.className = "sources";
+    s.innerHTML = "<span>Sources</span>";
+    sources.forEach((src) => {
+      const a = document.createElement("a");
+      a.href = src.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = "[" + src.n + "] " + src.title + " ↗";
+      s.append(a);
+    });
+    div.append(s);
+  }
+  $("messages").append(div);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  return div;
+}
+
+async function ask(q) {
+  q = q.trim();
+  if (!q) return;
+  $("chips").classList.add("hidden");
+  addMessage(q, "user");
+  $("question").value = "";
+  $("send").disabled = true;
+  const loading = addMessage("", "luna");
+  loading.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+  try {
+    const res = await fetch(API + "/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: q, history: chatHistory.slice(-6) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Request failed");
+    loading.remove();
+    addMessage(data.answer, "luna", data.sources);
+    chatHistory.push({ role: "user", content: q }, { role: "assistant", content: data.answer });
+  } catch (err) {
+    loading.remove();
+    addMessage(err.message === "Failed to fetch"
+      ? "I can't reach the Luna server. Run `python app.py` in the project folder, then open http://127.0.0.1:5000"
+      : (err.message || "Something went wrong."), "luna error");
+  } finally {
+    $("send").disabled = false;
+    $("question").focus();
+  }
+}
+$("chatForm").onsubmit = (e) => { e.preventDefault(); ask($("question").value); };
+document.querySelectorAll("#chips button").forEach((b) => (b.onclick = () => ask(b.textContent)));
+
+// ---------- tracker (localStorage only) ----------
+const LOGS_KEY = "luna.logs", CYCLE_KEY = "luna.cycle";
+function load(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+let logs = load(LOGS_KEY, []);
+$("cycleLength").value = load(CYCLE_KEY, 28);
+
+function addDays(iso, n) {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+const pretty = (iso) => new Date(iso + "T12:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+const days = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000) + 1;
+
+function render() {
+  const box = $("logs");
+  box.innerHTML = "";
+  if (!logs.length) box.innerHTML = '<p class="note" style="text-align:left">No periods logged yet.</p>';
+  logs.forEach((l, i) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = "<div>" + pretty(l.start) + "<small>" + days(l.start, l.end) + " days · ended " + pretty(l.end) + "</small></div>";
+    const del = document.createElement("button");
+    del.className = "btn ghost"; del.textContent = "Delete";
+    del.onclick = () => { logs.splice(i, 1); save(LOGS_KEY, logs); render(); };
+    row.append(del);
+    box.append(row);
+  });
+  const cycle = Number($("cycleLength").value) || 28;
+  $("nextDate").textContent = logs.length ? pretty(addDays(logs[0].start, cycle)) : "Log a period to see this";
+}
+
+$("saveLog").onclick = () => {
+  const start = $("startDate").value, end = $("endDate").value, cycle = Number($("cycleLength").value);
+  const msg = (t) => ($("trackerMsg").textContent = t);
+  if (!start || !end) return msg("Enter both dates.");
+  if (end < start) return msg("End must be on or after start.");
+  if (!(cycle >= 15 && cycle <= 60)) return msg("Cycle length must be 15-60 days.");
+  logs.push({ start, end });
+  logs.sort((a, b) => b.start.localeCompare(a.start)); // newest first
+  save(LOGS_KEY, logs); save(CYCLE_KEY, cycle);
+  $("startDate").value = ""; $("endDate").value = "";
+  msg("Saved ✓");
+  render();
+};
+$("cycleLength").onchange = () => { save(CYCLE_KEY, Number($("cycleLength").value)); render(); };
+$("deleteAll").onclick = () => {
+  if (confirm("Delete all period logs?")) { logs = []; save(LOGS_KEY, logs); render(); }
+};
+render();
+</script>
+</body>
+</html>
