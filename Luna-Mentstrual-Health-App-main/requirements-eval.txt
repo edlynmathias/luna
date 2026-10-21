@@ -1,6 +1,0 @@
-# Tests + RAGAS evaluation (eval/ragas_eval.py). No PyTorch needed.
--r requirements.txt
-pytest>=8,<9
-ragas>=0.2.6,<0.4
-langchain-openai>=0.2
-langchain-community>=0.3,<0.4  # ragas 0.3 imports a module removed in 0.4
